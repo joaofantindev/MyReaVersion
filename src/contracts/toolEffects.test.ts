@@ -36,6 +36,16 @@ const EXECUTION_WORDING_EXCEPTIONS: Readonly<Record<string, string>> = {
   inspect_native_exports: "reads the export table without executing it",
   inspect_devicetree: "states that it does not execute the image",
   inspect_elf_notes: "states that it does not execute the image",
+  inspect_native_risk_signatures:
+    "states that it does not execute the image",
+  plan_frida_hooks:
+    "states that it generates a script without attaching or executing it",
+  plan_symbolic_execution:
+    "states that it generates an inert plan without executing angr, Python, or the target",
+  plan_memory_forensics:
+    "states that it generates an inert plan without executing Volatility, Python, or the image",
+  plan_fuzzing_campaign:
+    "states that it generates an inert plan without executing AFL++, Python, or the target",
   inspect_apple_ips: "states that it does not execute a target",
   inspect_kernel_module: "states that it does not execute the module",
   inspect_pe_load_config: "states that it does not execute the image",

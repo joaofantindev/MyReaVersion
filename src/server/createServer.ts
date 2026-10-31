@@ -36,6 +36,10 @@ import {
   createPeCertificatesService,
   createPeImportsService,
   createNativeExportsService,
+  createRiskSignaturesService,
+  createSymbolicExecutionService,
+  createMemoryForensicsService,
+  createFuzzingService,
   createPeResourcesService,
   createRecordedCrashService,
   createByteEntropyService,
@@ -50,6 +54,10 @@ import type { PeCertificatesService } from "../application/binaryDiagnostics/PeC
 import type { PeImportsService } from "../application/binaryDiagnostics/PeImportsService.js";
 import type { PeResourcesService } from "../application/binaryDiagnostics/PeResourcesService.js";
 import type { NativeExportsService } from "../application/binaryDiagnostics/NativeExportsService.js";
+import type { RiskSignaturesService } from "../application/binaryDiagnostics/RiskSignaturesService.js";
+import type { SymbolicExecutionService } from "../application/symbolicExecution/SymbolicExecutionService.js";
+import type { MemoryForensicsService } from "../application/memoryForensics/MemoryForensicsService.js";
+import type { FuzzingService } from "../application/fuzzing/FuzzingService.js";
 import { registerElfNotesTool } from "./registerElfNotesTool.js";
 import { registerAppleIpsTool } from "./registerAppleIpsTool.js";
 import { registerKernelModuleTool } from "./registerKernelModuleTool.js";
@@ -58,6 +66,10 @@ import { registerPeCertificatesTool } from "./registerPeCertificatesTool.js";
 import { registerPeImportsTool } from "./registerPeImportsTool.js";
 import { registerPeResourcesTool } from "./registerPeResourcesTool.js";
 import { registerNativeExportsTool } from "./registerNativeExportsTool.js";
+import { registerRiskSignaturesTool } from "./registerRiskSignaturesTool.js";
+import { registerSymbolicExecutionTool } from "./registerSymbolicExecutionTool.js";
+import { registerMemoryForensicsTool } from "./registerMemoryForensicsTool.js";
+import { registerFuzzingTool } from "./registerFuzzingTool.js";
 import type { EvmInterfaceService } from "../application/evm/EvmInterfaceService.js";
 import {
   evmHostSupported,
@@ -489,6 +501,10 @@ export const createServer = (
   const nativeExports = createNativeExportsService();
   const devicetree = createDevicetreeService();
   const elfNotes = createElfNotesService();
+  const riskSignatures = createRiskSignaturesService();
+  const symbolicExecution = createSymbolicExecutionService();
+  const memoryForensics = createMemoryForensicsService();
+  const fuzzing = createFuzzingService();
   const appleIps = createAppleIpsService();
   const kernelModule = createKernelModuleService();
   const peLoadConfig = createPeLoadConfigService();
@@ -617,6 +633,10 @@ export const createServer = (
       nativeExports.close(),
       devicetree.close(),
       elfNotes.close(),
+      riskSignatures.close(),
+      symbolicExecution.close(),
+      memoryForensics.close(),
+      fuzzing.close(),
       appleIps.close(),
       kernelModule.close(),
       peLoadConfig.close(),
@@ -690,6 +710,10 @@ export const createServer = (
     nativeExports,
     devicetree,
     elfNotes,
+    riskSignatures,
+    symbolicExecution,
+    memoryForensics,
+    fuzzing,
     appleIps,
     kernelModule,
     peLoadConfig,
@@ -936,6 +960,10 @@ const registerConfiguredAnalysisTools = (
     nativeExports,
     devicetree,
     elfNotes,
+    riskSignatures,
+    symbolicExecution,
+    memoryForensics,
+    fuzzing,
     appleIps,
     kernelModule,
     peLoadConfig,
@@ -1011,6 +1039,34 @@ const registerConfiguredAnalysisTools = (
   registerElfNotesTool(
     server,
     elfNotes,
+    toolLogger,
+    recordEvidence,
+    withAdmittedAnalysis,
+  );
+  registerRiskSignaturesTool(
+    server,
+    riskSignatures,
+    toolLogger,
+    recordEvidence,
+    withAdmittedAnalysis,
+  );
+  registerSymbolicExecutionTool(
+    server,
+    symbolicExecution,
+    toolLogger,
+    recordEvidence,
+    withAdmittedAnalysis,
+  );
+  registerMemoryForensicsTool(
+    server,
+    memoryForensics,
+    toolLogger,
+    recordEvidence,
+    withAdmittedAnalysis,
+  );
+  registerFuzzingTool(
+    server,
+    fuzzing,
     toolLogger,
     recordEvidence,
     withAdmittedAnalysis,
@@ -1209,6 +1265,10 @@ interface ServerToolContext extends ReturnType<typeof createSessionRecorders> {
   readonly nativeExports: NativeExportsService;
   readonly devicetree: DevicetreeService;
   readonly elfNotes: ElfNotesService;
+  readonly riskSignatures: RiskSignaturesService;
+  readonly symbolicExecution: SymbolicExecutionService;
+  readonly memoryForensics: MemoryForensicsService;
+  readonly fuzzing: FuzzingService;
   readonly appleIps: AppleIpsService;
   readonly kernelModule: KernelModuleService;
   readonly peLoadConfig: PeLoadConfigService;

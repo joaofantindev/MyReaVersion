@@ -21,6 +21,14 @@ import { KernelModuleProvider } from "../native/elf/KernelModuleProvider.js";
 import type { ArtifactResourceScope } from "../artifacts/ArtifactResourceScope.js";
 import { NativeExportsService } from "../application/binaryDiagnostics/NativeExportsService.js";
 import { NativeExportsProvider } from "../native/exports/NativeExportsProvider.js";
+import { RiskSignaturesService } from "../application/binaryDiagnostics/RiskSignaturesService.js";
+import { RiskSignaturesProvider } from "../native/security/RiskSignaturesProvider.js";
+import { SymbolicExecutionService } from "../application/symbolicExecution/SymbolicExecutionService.js";
+import { SymbolicExecutionProvider } from "../native/symbolic/SymbolicExecutionProvider.js";
+import { MemoryForensicsService } from "../application/memoryForensics/MemoryForensicsService.js";
+import { MemoryForensicsProvider } from "../native/memory/MemoryForensicsProvider.js";
+import { FuzzingService } from "../application/fuzzing/FuzzingService.js";
+import { FuzzingProvider } from "../native/fuzzing/FuzzingProvider.js";
 
 import { DevicetreeService } from "../application/binaryDiagnostics/DevicetreeService.js";
 import { DevicetreeProvider } from "../firmware/devicetree/DevicetreeProvider.js";
@@ -47,6 +55,22 @@ export const createNativeExportsService = (): NativeExportsService =>
 /** Portable ELF note-table inspection with no engine or package catalog. */
 export const createElfNotesService = (): ElfNotesService =>
   new ElfNotesService(new ElfNotesProvider());
+
+/** Portable native risk-signature scanning with no engine or package catalog. */
+export const createRiskSignaturesService = (): RiskSignaturesService =>
+  new RiskSignaturesService(new RiskSignaturesProvider());
+
+/** Portable angr plan generation with no engine, Python, or target execution. */
+export const createSymbolicExecutionService = (): SymbolicExecutionService =>
+  new SymbolicExecutionService(new SymbolicExecutionProvider());
+
+/** Portable Volatility plan generation with no engine, Python, or image execution. */
+export const createMemoryForensicsService = (): MemoryForensicsService =>
+  new MemoryForensicsService(new MemoryForensicsProvider());
+
+/** Portable AFL++ plan generation with no engine, Python, or target execution. */
+export const createFuzzingService = (): FuzzingService =>
+  new FuzzingService(new FuzzingProvider());
 
 /** Portable Apple .ips inspection with no engine, Xcode or target acquisition. */
 export const createAppleIpsService = (): AppleIpsService =>

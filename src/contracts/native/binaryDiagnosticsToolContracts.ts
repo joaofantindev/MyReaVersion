@@ -56,6 +56,22 @@ import {
   inspectKernelModuleInputSchema,
   kernelModuleSchema,
 } from "../../domain/native/kernelModule.js";
+import {
+  inspectNativeRiskSignaturesInputSchema,
+  nativeRiskSignaturesSchema,
+} from "../../domain/native/riskSignatures.js";
+import {
+  planSymbolicExecutionInputSchema,
+  symbolicExecutionPlanSchema,
+} from "../../domain/native/symbolicExecutionPlan.js";
+import {
+  planMemoryForensicsInputSchema,
+  memoryForensicsPlanSchema,
+} from "../../domain/native/memoryForensicsPlan.js";
+import {
+  planFuzzingCampaignInputSchema,
+  fuzzingPlanSchema,
+} from "../../domain/native/fuzzingPlan.js";
 
 /** Caller-selected delivery of completed binary layout Evidence. */
 export const inspectBinaryLayoutRequestSchema =
@@ -204,6 +220,80 @@ export const BINARY_DIAGNOSTICS_TOOL_CONTRACTS = [
       {
         title: "Inspect PE import and delay-load identities",
         input: { path: "/artifacts/application.exe" },
+      },
+    ],
+  },
+  {
+    name: "inspect_native_risk_signatures",
+    ...toolContractMetadata("inspect_native_risk_signatures"),
+    kind: "native-provider",
+    description:
+      "Scan one explicit local ELF, PE, or thin Mach-O image for bounded static risk signatures without executing it or opening a disassembler. Extracts printable ASCII and UTF-16LE runs, then matches whole symbol-like names and curated patterns for unsafe memory APIs, command execution, format-string sinks, weak cryptography, dynamic loading, debug/anti-analysis APIs, hardening instrumentation, and credential-like strings. Returns file offsets, containing section, source encoding, a redacted preview, and a SHA-256 of each matched value. API names inside prose require include_text_matches and increase false positives. A match proves only that bytes are present: reachability, exploitability, credential validity, and runtime behavior remain unknown. Section names, executable/writable flags, and severity are static observations or heuristics. Reads a stable regular file; malformed containers and exhausted string or match budgets fail without partial success. Portable on supported Node hosts; no engine, package catalog, or target execution is required.",
+    inputSchema: inspectNativeRiskSignaturesInputSchema,
+    outputSchema: evidenceResultOf(nativeRiskSignaturesSchema),
+    examples: [
+      {
+        title: "Scan a native image for unsafe APIs and embedded credentials",
+        input: { path: "/artifacts/program" },
+      },
+    ],
+  },
+  {
+    name: "plan_symbolic_execution",
+    ...toolContractMetadata("plan_symbolic_execution"),
+    kind: "native-provider",
+    description:
+      "Generate an inert angr symbolic-execution plan for one explicit local binary without executing angr, Python, or the target. Returns the artifact SHA-256, normalized entry/find/avoid targets, step and deadline limits, and a reviewable Python script that resolves symbols through the caller's angr loader, disables shared-library loading, explores to the first find target while avoiding the declared paths, and reports status, step counts and bounded solved argv bytes as JSON. The script refuses to run when the artifact hash differs. Symbolic execution explores modeled paths: a found or stopped search does not prove reachability, exploitability, or that a path is unreachable, and solved bytes are not a working payload. Caller-supplied angr, solver, and loader behavior are not verified by REA. Reads a stable regular file only to record identity; it does not parse the container, run the script, or attach to a process.",
+    inputSchema: planSymbolicExecutionInputSchema,
+    outputSchema: evidenceResultOf(symbolicExecutionPlanSchema),
+    examples: [
+      {
+        title: "Plan a path search for a symbol while avoiding a failure path",
+        input: {
+          path: "/artifacts/program",
+          find: [{ kind: "symbol", value: "win" }],
+          avoid: [{ kind: "symbol", value: "lose" }],
+          symbolic_arguments: 1,
+        },
+      },
+    ],
+  },
+  {
+    name: "plan_memory_forensics",
+    ...toolContractMetadata("plan_memory_forensics"),
+    kind: "native-provider",
+    description:
+      "Generate an inert Volatility 3 plan for one explicit local memory image without executing Volatility, Python, or the image. Returns the image SHA-256, normalized plugin selections, a fixed JSON-renderer argument vector for each plugin, per-plugin deadline and retained-output limits, and a reviewable Python script. The script refuses to run when the image hash differs, splits REA_VOLATILITY_COMMAND as an argument vector, runs only the selected plugins, bounds each plugin's deadline and retained stdout/stderr, and prints one JSON object with per-plugin status, exit code, bounded records, and stderr. It does not acquire live memory, inspect symbols itself, validate recovered credentials, execute the captured target, perform taint analysis, or bypass anti-debug or anti-VM checks. Volatility, symbol tables, and plugin behavior are caller-supplied and not verified by REA. Reads a stable regular file only to record identity; it does not parse the image or run the script.",
+    inputSchema: planMemoryForensicsInputSchema,
+    outputSchema: evidenceResultOf(memoryForensicsPlanSchema),
+    examples: [
+      {
+        title: "Plan process and command-line recovery from a memory image",
+        input: {
+          path: "/artifacts/memory.raw",
+          plugins: ["windows.pslist", "windows.cmdline"],
+        },
+      },
+    ],
+  },
+  {
+    name: "plan_fuzzing_campaign",
+    ...toolContractMetadata("plan_fuzzing_campaign"),
+    kind: "native-provider",
+    description:
+      "Generate an inert AFL++ campaign plan for one explicit local fuzz target without executing AFL++, Python, or the target. Returns the target SHA-256, caller-selected corpus and output directories, target arguments, optional dictionary, runtime and per-execution limits, and a reviewable Python script. The script refuses to run when the target hash differs, splits REA_AFL_FUZZ_COMMAND as an argument vector, checks the seed corpus, runs AFL++ with the planned -i/-o/-t/-V/-m values, and prints one JSON object with exit status and bounded crash and hang file identities. It does not install AFL++, validate target behavior, prove that a crash exists, analyze crash reports, perform autonomous exploit generation, or bypass anti-debug or anti-VM checks. Crash and hang files are candidate inputs; use inspect_recorded_crash on a supplied core or inspect_apple_ips on a supplied Apple report. Reads a stable regular file only to record identity; it does not run the script or execute the target.",
+    inputSchema: planFuzzingCampaignInputSchema,
+    outputSchema: evidenceResultOf(fuzzingPlanSchema),
+    examples: [
+      {
+        title: "Plan a bounded file-input fuzzing campaign",
+        input: {
+          path: "/artifacts/parser",
+          corpus_directory: "/artifacts/seeds",
+          output_directory: "/artifacts/fuzz-output",
+          target_arguments: ["@@"],
+          max_runtime_seconds: 120,
+        },
       },
     ],
   },

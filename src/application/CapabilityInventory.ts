@@ -544,6 +544,10 @@ const workflowAvailabilityFor = ({
     return { reason: "available", remediation: null };
   if (
     name === "inspect_elf_notes" ||
+    name === "inspect_native_risk_signatures" ||
+    name === "plan_symbolic_execution" ||
+    name === "plan_memory_forensics" ||
+    name === "plan_fuzzing_campaign" ||
     name === "inspect_devicetree" ||
     name === "inspect_kernel_module" ||
     name === "inspect_pe_load_config"

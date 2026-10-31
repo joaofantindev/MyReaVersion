@@ -240,6 +240,7 @@ export const TOOL_EFFECTS: Readonly<Record<string, ToolEffects>> = {
     idempotent: false,
   }),
   frida_session_status: evidence,
+  plan_frida_hooks: effects(),
   close_frida_session: effects({
     mutatesTarget: true,
     mutatesSession: true,
@@ -262,6 +263,10 @@ export const TOOL_EFFECTS: Readonly<Record<string, ToolEffects>> = {
   inspect_pe_imports: evidence,
   inspect_native_exports: evidence,
   inspect_elf_notes: evidence,
+  inspect_native_risk_signatures: evidence,
+  plan_symbolic_execution: evidence,
+  plan_memory_forensics: evidence,
+  plan_fuzzing_campaign: evidence,
   inspect_apple_ips: evidence,
   inspect_devicetree: evidence,
   inspect_kernel_module: evidence,

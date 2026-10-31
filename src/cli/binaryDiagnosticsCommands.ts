@@ -16,6 +16,10 @@ import {
   createPeCertificatesService,
   createPeImportsService,
   createNativeExportsService,
+  createRiskSignaturesService,
+  createSymbolicExecutionService,
+  createMemoryForensicsService,
+  createFuzzingService,
 } from "../composition/binaryDiagnostics.js";
 import { CLI_COMMANDS } from "../cliCommandNames.js";
 import { logCliCommand } from "../cliLogging.js";
@@ -28,6 +32,13 @@ import { inspectPeResourcesInputSchema } from "../domain/native/peResources.js";
 import { inspectPeCertificatesInputSchema } from "../domain/native/peCertificates.js";
 import { inspectPeImportsInputSchema } from "../domain/native/peImports.js";
 import { inspectNativeExportsInputSchema } from "../domain/native/nativeExports.js";
+import { inspectNativeRiskSignaturesInputSchema } from "../domain/native/riskSignatures.js";
+import { planSymbolicExecutionInputSchema } from "../domain/native/symbolicExecutionPlan.js";
+import {
+  planMemoryForensicsInputSchema,
+  memoryForensicsPluginSchema,
+} from "../domain/native/memoryForensicsPlan.js";
+import { planFuzzingCampaignInputSchema } from "../domain/native/fuzzingPlan.js";
 import { inspectElfNotesInputSchema } from "../domain/native/elfNotes.js";
 import { inspectAppleIpsInputSchema } from "../domain/native/appleIps.js";
 import { inspectKernelModuleInputSchema } from "../domain/native/kernelModule.js";
@@ -435,6 +446,322 @@ export const registerBinaryDiagnosticsCommands = (
               detail: options.detail,
               evidenceOutput: options.evidence_output,
             }),
+        );
+      }),
+  });
+  cli.command(CLI_COMMANDS.inspectNativeRiskSignatures, {
+    description:
+      "Scan a native image for unsafe APIs, weak primitives, and credential-like strings",
+    args: z.object({
+      path: localPathStringSchema.describe("Local ELF, PE, or thin Mach-O image"),
+    }),
+    options: z.object({
+      maxFileBytes: inspectNativeRiskSignaturesInputSchema.shape.max_file_bytes,
+      maxStrings: inspectNativeRiskSignaturesInputSchema.shape.max_strings,
+      maxMatches: inspectNativeRiskSignaturesInputSchema.shape.max_matches,
+      minStringBytes:
+        inspectNativeRiskSignaturesInputSchema.shape.min_string_bytes,
+      maxStringBytes:
+        inspectNativeRiskSignaturesInputSchema.shape.max_string_bytes,
+      includeTextMatches:
+        inspectNativeRiskSignaturesInputSchema.shape.include_text_matches,
+    }),
+    run: ({ args, options }) =>
+      withCommandCancellation(async (signal) => {
+        const signatures = createRiskSignaturesService();
+        return await logCliCommand(
+          logger,
+          CLI_COMMANDS.inspectNativeRiskSignatures,
+          async () =>
+            finishCliEvidenceCommand(
+              args.path,
+              () =>
+                signatures.inspect(
+                  {
+                    path: absoluteCallerPath(args.path),
+                    max_file_bytes: options.maxFileBytes,
+                    max_strings: options.maxStrings,
+                    max_matches: options.maxMatches,
+                    min_string_bytes: options.minStringBytes,
+                    max_string_bytes: options.maxStringBytes,
+                    include_text_matches: options.includeTextMatches,
+                  },
+                  { signal },
+                ),
+              signatures,
+              "rea-native-risk-signatures",
+              "inspect_native_risk_signatures",
+              signal,
+            ).then(projectCliAnalysisResult),
+        );
+      }),
+  });
+  cli.command(CLI_COMMANDS.planSymbolicExecution, {
+    description:
+      "Generate an inert angr path-exploration plan without executing angr or the target",
+    args: z.object({
+      path: localPathStringSchema.describe(
+        "Local binary the generated plan targets",
+      ),
+    }),
+    options: z
+      .object({
+        findAddress: z
+          .array(z.string())
+          .max(8)
+          .default([])
+          .describe(
+            "Find address such as 0x401136; repeat for each target (at least one find address or symbol)",
+          ),
+        findSymbol: z
+          .array(z.string())
+          .max(8)
+          .default([])
+          .describe("Find symbol name; repeat for each target"),
+        avoidAddress: z
+          .array(z.string())
+          .max(16)
+          .default([])
+          .describe("Avoid address; repeat for each target"),
+        avoidSymbol: z
+          .array(z.string())
+          .max(16)
+          .default([])
+          .describe("Avoid symbol name; repeat for each target"),
+        entryAddress: z
+          .string()
+          .optional()
+          .describe("Starting address; omit to use the image entry point"),
+        entrySymbol: z
+          .string()
+          .optional()
+          .describe("Starting symbol; omit to use the image entry point"),
+        symbolicArguments:
+          planSymbolicExecutionInputSchema.shape.symbolic_arguments,
+        maxSymbolicArgumentBytes:
+          planSymbolicExecutionInputSchema.shape.max_symbolic_argument_bytes,
+        maxSteps: planSymbolicExecutionInputSchema.shape.max_steps,
+        deadlineSeconds:
+          planSymbolicExecutionInputSchema.shape.deadline_seconds,
+        maxSolutionBytes:
+          planSymbolicExecutionInputSchema.shape.max_solution_bytes,
+        maxFileBytes: planSymbolicExecutionInputSchema.shape.max_file_bytes,
+      })
+      .refine(
+        (value) =>
+          value.findAddress.length + value.findSymbol.length >= 1 &&
+          value.findAddress.length + value.findSymbol.length <= 8,
+        "Supply 1 to 8 find addresses or symbols in total",
+      )
+      .refine(
+        (value) =>
+          value.avoidAddress.length + value.avoidSymbol.length <= 16,
+        "Supply at most 16 avoid addresses or symbols in total",
+      )
+      .refine(
+        (value) =>
+          !(value.entryAddress !== undefined && value.entrySymbol !== undefined),
+        "Choose either entryAddress or entrySymbol, not both",
+      ),
+    run: ({ args, options }) =>
+      withCommandCancellation(async (signal) => {
+        const planner = createSymbolicExecutionService();
+        return await logCliCommand(
+          logger,
+          CLI_COMMANDS.planSymbolicExecution,
+          async () =>
+            finishCliEvidenceCommand(
+              args.path,
+              () =>
+                planner.plan(
+                  {
+                    path: absoluteCallerPath(args.path),
+                    find: [
+                      ...options.findAddress.map((value) => ({
+                        kind: "address" as const,
+                        value,
+                      })),
+                      ...options.findSymbol.map((value) => ({
+                        kind: "symbol" as const,
+                        value,
+                      })),
+                    ],
+                    avoid: [
+                      ...options.avoidAddress.map((value) => ({
+                        kind: "address" as const,
+                        value,
+                      })),
+                      ...options.avoidSymbol.map((value) => ({
+                        kind: "symbol" as const,
+                        value,
+                      })),
+                    ],
+                    ...(options.entryAddress === undefined &&
+                    options.entrySymbol === undefined
+                      ? {}
+                      : {
+                          entry:
+                            options.entryAddress === undefined
+                              ? {
+                                  kind: "symbol" as const,
+                                  value: options.entrySymbol ?? "",
+                                }
+                              : {
+                                  kind: "address" as const,
+                                  value: options.entryAddress,
+                                },
+                        }),
+                    symbolic_arguments: options.symbolicArguments,
+                    max_symbolic_argument_bytes:
+                      options.maxSymbolicArgumentBytes,
+                    max_steps: options.maxSteps,
+                    deadline_seconds: options.deadlineSeconds,
+                    max_solution_bytes: options.maxSolutionBytes,
+                    max_file_bytes: options.maxFileBytes,
+                  },
+                  { signal },
+                ),
+              planner,
+              "rea-native-symbolic-execution",
+              "plan_symbolic_execution",
+              signal,
+            ).then(projectCliAnalysisResult),
+        );
+      }),
+  });
+  cli.command(CLI_COMMANDS.planMemoryForensics, {
+    description:
+      "Generate an inert Volatility 3 memory-forensics plan without executing Volatility or the image",
+    args: z.object({
+      path: localPathStringSchema.describe("Local memory image"),
+    }),
+    options: z.object({
+      plugin: z
+        .array(memoryForensicsPluginSchema)
+        .min(1)
+        .max(16)
+        .describe(
+          "Volatility 3 plugin name; repeat for each selected plugin (for example windows.pslist)",
+        ),
+      timeoutSeconds:
+        planMemoryForensicsInputSchema.shape.timeout_seconds.describe(
+          "Per-plugin deadline in the generated script (default 300)",
+        ),
+      maxOutputBytes:
+        planMemoryForensicsInputSchema.shape.max_output_bytes.describe(
+          "Retained stdout and stderr bytes per plugin (default 16777216)",
+        ),
+      maxFileBytes:
+        planMemoryForensicsInputSchema.shape.max_file_bytes.describe(
+          "Maximum stable image bytes read for identity (default 67108864)",
+        ),
+    }),
+    run: ({ args, options }) =>
+      withCommandCancellation(async (signal) => {
+        const planner = createMemoryForensicsService();
+        return await logCliCommand(
+          logger,
+          CLI_COMMANDS.planMemoryForensics,
+          async () =>
+            finishCliEvidenceCommand(
+              args.path,
+              () =>
+                planner.plan(
+                  {
+                    path: absoluteCallerPath(args.path),
+                    plugins: options.plugin,
+                    timeout_seconds: options.timeoutSeconds,
+                    max_output_bytes: options.maxOutputBytes,
+                    max_file_bytes: options.maxFileBytes,
+                  },
+                  { signal },
+                ),
+              planner,
+              "rea-native-memory-forensics",
+              "plan_memory_forensics",
+              signal,
+            ).then(projectCliAnalysisResult),
+        );
+      }),
+  });
+  cli.command(CLI_COMMANDS.planFuzzingCampaign, {
+    description:
+      "Generate an inert AFL++ campaign plan without executing AFL++ or the target",
+    args: z.object({
+      path: localPathStringSchema.describe("Local fuzz target"),
+      corpusDirectory: localPathStringSchema.describe(
+        "Existing seed corpus directory",
+      ),
+      outputDirectory: localPathStringSchema.describe(
+        "AFL++ output directory",
+      ),
+    }),
+    options: z.object({
+      dictionaryPath: localPathStringSchema
+        .optional()
+        .describe("Optional AFL dictionary file"),
+      targetArgument: z
+        .array(z.string().min(1).max(1024))
+        .max(32)
+        .default([])
+        .describe(
+          'Target argument after the target path; repeat for each argument and include "@@" where AFL++ should substitute the input file',
+        ),
+      maxRuntimeSeconds:
+        planFuzzingCampaignInputSchema.shape.max_runtime_seconds.describe(
+          "AFL++ -V campaign deadline (default 300)",
+        ),
+      timeoutMs: planFuzzingCampaignInputSchema.shape.timeout_ms.describe(
+        "AFL++ per-execution timeout in milliseconds (default 1000)",
+      ),
+      memoryLimitMb:
+        planFuzzingCampaignInputSchema.shape.memory_limit_mb.describe(
+          "AFL++ -m target memory limit in MiB (default 512)",
+        ),
+      maxFileBytes:
+        planFuzzingCampaignInputSchema.shape.max_file_bytes.describe(
+          "Maximum stable target bytes read for identity (default 67108864)",
+        ),
+    }),
+    run: ({ args, options }) =>
+      withCommandCancellation(async (signal) => {
+        const planner = createFuzzingService();
+        return await logCliCommand(
+          logger,
+          CLI_COMMANDS.planFuzzingCampaign,
+          async () =>
+            finishCliEvidenceCommand(
+              args.path,
+              () =>
+                planner.plan(
+                  {
+                    path: absoluteCallerPath(args.path),
+                    corpus_directory: absoluteCallerPath(
+                      args.corpusDirectory,
+                    ),
+                    output_directory: absoluteCallerPath(
+                      args.outputDirectory,
+                    ),
+                    ...(options.dictionaryPath === undefined
+                      ? {}
+                      : {
+                          dictionary_path: absoluteCallerPath(
+                            options.dictionaryPath,
+                          ),
+                        }),
+                    target_arguments: options.targetArgument,
+                    max_runtime_seconds: options.maxRuntimeSeconds,
+                    timeout_ms: options.timeoutMs,
+                    memory_limit_mb: options.memoryLimitMb,
+                    max_file_bytes: options.maxFileBytes,
+                  },
+                  { signal },
+                ),
+              planner,
+              "rea-native-fuzzing",
+              "plan_fuzzing_campaign",
+              signal,
+            ).then(projectCliAnalysisResult),
         );
       }),
   });

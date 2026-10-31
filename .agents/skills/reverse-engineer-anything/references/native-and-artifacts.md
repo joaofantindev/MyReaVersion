@@ -156,6 +156,91 @@ absence of those declarations, not proof the image never carried notes in
 another container. See
 [ELF note tables](https://github.com/morluto/rea/blob/main/docs/elf-notes.md).
 
+## Native risk signatures
+
+Use `inspect_native_risk_signatures` for an explicit local ELF, PE, or thin
+Mach-O image when the question concerns unsafe APIs, command or format-string
+sinks, weak cryptography, dynamic loading, debugger APIs, hardening
+instrumentation, or credential-like strings. No `open_binary`, engine, package
+catalog, or target execution is required. The CLI equivalent is
+`inspect-native-risk-signatures PATH`. Preserve artifact SHA-256, match rule,
+category, severity, file offset and length, containing section, encoding, and
+`value_sha256`. Whole symbol-like names match by default;
+`include_text_matches` also matches inside prose and increases false positives.
+Hardening matches are informational signals, not weaknesses. A match proves only
+that bytes are present: reachability, exploitability, runtime behavior, and
+credential validity remain unknown. See
+[native risk signatures](https://github.com/morluto/rea/blob/main/docs/native-risk-signatures.md).
+
+## Angr symbolic-execution plans
+
+Use `plan_symbolic_execution` when the question concerns which inputs and paths
+could reach a selected address or symbol in an explicit local binary. Planning
+records the artifact SHA-256 and generates an inert angr Python script without
+opening the container, invoking Python or angr, or running the target. The CLI
+equivalent is `plan-symbolic-execution PATH`. Each find or avoid target is an
+address or an exact loader symbol; `symbolic_arguments` selects how many
+positional `argv` entries become fixed-length symbolic bitvectors. Preserve the
+planned SHA-256, targets, entry, limits, script hash, and script byte length.
+The script stops on an identity mismatch, disables shared libraries, and reports
+one JSON status: `found`, `exhausted`, `step-limit`, `deadline`, or `error`. A
+found or stopped search does not prove runtime reachability, exploitability, or
+unreachability of an avoid target. The environment, files, working directory,
+and stdin are not modelled, and solved bytes are one path's model values rather
+than a working payload. See
+[Angr symbolic-execution plans](https://github.com/morluto/rea/blob/main/docs/angr-symbolic-execution.md).
+
+## Volatility memory-forensics plans
+
+Use `plan_memory_forensics` for an explicit local memory image when the question
+concerns processes, command lines, network records, or other Volatility 3 plugin
+output. Planning records the image SHA-256 and generates an inert Python script
+without running Volatility, Python, or the image. The CLI equivalent is
+`plan-memory-forensics PATH --plugin PLUGIN`. The script refuses a changed image,
+uses the caller-supplied `REA_VOLATILITY_COMMAND` argument vector, runs only the
+selected plugins with the JSON renderer, and bounds each plugin's deadline and
+retained output. Recovered records are image observations; freshness, validity,
+and live-system relationships remain unknown. See
+[Volatility memory-forensics plans](https://github.com/morluto/rea/blob/main/docs/memory-forensics-planning.md).
+
+## AFL++ fuzzing plans
+
+Use `plan_fuzzing_campaign` for an explicit local target when the question is
+how to run a bounded AFL++ campaign and where crash inputs will appear. Planning
+records the target SHA-256 and generates an inert Python script without running
+AFL++, Python, or the target. The CLI equivalent is
+`plan-fuzzing-campaign TARGET --corpus-directory DIR --output-directory DIR`.
+At most one target argument may be exactly `@@`. Crash and hang files are
+candidate inputs, not reports; use `inspect_recorded_crash` for a supplied core
+or `inspect_apple_ips` for a supplied Apple report. See
+[AFL++ fuzzing campaign plans](https://github.com/morluto/rea/blob/main/docs/fuzzing-campaign-planning.md).
+
+## Taint tracing and decompilation annotations
+
+Use `trace_native_values` for a bounded static dependency graph from one
+procedure, then confirm source-to-sink call and argument edges with
+`batch_decompile` or `analyze_function`. Use `find_xrefs_to_name` to resolve
+library symbols and `inspect_native_risk_signatures` for unsafe APIs and
+credential-like strings. These workflows return separate annotations; they do
+not rewrite provider pseudocode or prove reachability. Dynamic taint, argument
+mutation, anti-debug/anti-VM bypass, and autonomous exploit generation are out
+of scope. See
+[native taint tracing and annotations](https://github.com/morluto/rea/blob/main/docs/native-taint-and-annotations.md).
+
+## Frida hook planning
+
+Use `plan_frida_hooks` when the question is which exported functions and
+arguments an observation hook should capture. Planning does not attach to a
+process, load the returned script, or execute generated code. The result is
+inert Frida 17 JavaScript plus normalized targets, its SHA-256 and byte length,
+and limitations. The generated script reports bounded pointer arguments,
+selected UTF-8 string arguments, optional raw return values and native
+backtraces, and lists missing exports at script load. It never changes
+arguments, return values, registers, memory, or control flow. Treat any later
+run as target instrumentation with its own authorization; argument mutation,
+anti-debug and anti-VM bypass, and integrity-check evasion are out of scope. See
+[Frida hook planning](https://github.com/morluto/rea/blob/main/docs/frida-hook-planning.md).
+
 ## Apple IPS crash reports
 
 Use `inspect_apple_ips` for an explicit local Apple `.ips` file when the

@@ -187,6 +187,34 @@ export const providerCatalog = (sources) => {
         ),
     },
     {
+      identity: sources.artifactProviders.NATIVE_RISK_SIGNATURES_PROVIDER,
+      contracts:
+        sources.binaryDiagnosticsContracts.BINARY_DIAGNOSTICS_TOOL_CONTRACTS.filter(
+          ({ name }) => name === "inspect_native_risk_signatures",
+        ),
+    },
+    {
+      identity: sources.artifactProviders.NATIVE_SYMBOLIC_EXECUTION_PROVIDER,
+      contracts:
+        sources.binaryDiagnosticsContracts.BINARY_DIAGNOSTICS_TOOL_CONTRACTS.filter(
+          ({ name }) => name === "plan_symbolic_execution",
+        ),
+    },
+    {
+      identity: sources.artifactProviders.NATIVE_MEMORY_FORENSICS_PROVIDER,
+      contracts:
+        sources.binaryDiagnosticsContracts.BINARY_DIAGNOSTICS_TOOL_CONTRACTS.filter(
+          ({ name }) => name === "plan_memory_forensics",
+        ),
+    },
+    {
+      identity: sources.artifactProviders.NATIVE_FUZZING_PROVIDER,
+      contracts:
+        sources.binaryDiagnosticsContracts.BINARY_DIAGNOSTICS_TOOL_CONTRACTS.filter(
+          ({ name }) => name === "plan_fuzzing_campaign",
+        ),
+    },
+    {
       identity: sources.captureProvider.TSHARK_PROVIDER_IDENTITY,
       contracts: sources.captureContracts.CAPTURE_TOOL_CONTRACTS,
     },

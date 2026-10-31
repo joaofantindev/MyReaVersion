@@ -11,6 +11,8 @@ import type {
 import { toolContract } from "../contracts/toolContracts.js";
 import { AnalysisInputError } from "../domain/analysisErrorCore.js";
 import { jsonValueSchema } from "../domain/jsonValue.js";
+import { ok } from "../domain/result.js";
+import { planFridaHooks } from "../application/frida/FridaHookPlanner.js";
 import { logToolExecution } from "./toolLogging.js";
 import { toolRegistrationOptions } from "./toolRegistrationOptions.js";
 import type { ToolResultDelivery } from "./ToolResultDelivery.js";
@@ -34,6 +36,7 @@ export const registerFridaTools = (
   const status = toolContract("frida_session_status");
   const close = toolContract("close_frida_session");
   const instrument = toolContract("instrument_with_frida");
+  const planHooks = toolContract("plan_frida_hooks");
 
   server.registerTool(
     listDevices.name,
@@ -281,6 +284,12 @@ export const registerFridaTools = (
         recordEvidence?.(result.value.evidence),
       );
     },
+  );
+  server.registerTool(
+    planHooks.name,
+    toolRegistrationOptions(planHooks),
+    async (input) =>
+      delivery.toCallToolResult(ok(planFridaHooks(input)), planHooks),
   );
 };
 

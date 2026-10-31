@@ -16,6 +16,10 @@ import {
   fridaDeviceListSchema,
   fridaProcessListSchema,
 } from "../domain/fridaDiscovery.js";
+import {
+  fridaHookPlanSchema,
+  planFridaHooksInputSchema,
+} from "../domain/fridaHookPlan.js";
 
 export const FRIDA_KEEPALIVE_INTERVAL_DESCRIPTION =
   "Remote keepalive interval in seconds";
@@ -290,6 +294,38 @@ export const FRIDA_TOOL_CONTRACTS = [
           source_kind: "inline",
           source: "send(Process.id);",
           duration_ms: 1_000,
+        },
+      },
+    ],
+  },
+  {
+    name: "plan_frida_hooks",
+    ...toolContractMetadata("plan_frida_hooks"),
+    kind: "application",
+    description:
+      "Generate an observation-only Frida 17 JavaScript hook plan for caller-selected exported functions without attaching to a process or executing generated code. Reports bounded pointer arguments, selected UTF-8 string arguments, optional return values and native backtraces, plus missing exports at script load. The script never modifies arguments, return values, registers, memory, or control flow. Argument mutation and anti-debug or anti-VM bypass are out of scope. Pass the returned source to instrument_with_frida or a Frida session only after reviewing it and separately authorizing target instrumentation.",
+    inputSchema: planFridaHooksInputSchema,
+    outputSchema: fridaHookPlanSchema,
+    examples: [
+      {
+        title: "Plan observation hooks for libc exports",
+        input: {
+          targets: [
+            {
+              module: "libc.so.6",
+              symbol: "strcpy",
+              argument_count: 2,
+              read_string_arguments: [0, 1],
+              max_string_bytes: 256,
+            },
+            {
+              module: "libc.so.6",
+              symbol: "system",
+              argument_count: 1,
+              read_string_arguments: [0],
+              include_return_value: true,
+            },
+          ],
         },
       },
     ],

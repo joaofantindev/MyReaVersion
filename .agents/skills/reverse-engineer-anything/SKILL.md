@@ -267,6 +267,57 @@ explicit path or endpoint and do not need it.
   build-id or ABI-tag fields. A missing table is observed absence of those
   declarations, not proof the image never carried notes. See the
   [ELF notes guide](https://github.com/morluto/rea/blob/main/docs/elf-notes.md).
+- Native risk signatures: `inspect_native_risk_signatures` with the explicit
+  local ELF, PE, or thin Mach-O file. This built-in target-free scan requires no
+  engine, package catalog, or execution. Preserve file offsets, containing
+  section, encoding, match kind, redacted preview, and `value_sha256`. Whole
+  symbol-like names match by default; `include_text_matches` broadens matching
+  inside prose and increases false positives. A match proves only that bytes are
+  present: reachability, exploitability, runtime behavior, and credential
+  validity remain unknown. See the
+  [risk signature guide](https://github.com/morluto/rea/blob/main/docs/native-risk-signatures.md).
+- Angr symbolic-execution plans: `plan_symbolic_execution` generates an inert
+  angr script for an explicit local binary, selected find and avoid address or
+  symbol targets, and optional symbolic `argv` entries. It records the artifact
+  SHA-256 and never invokes Python or angr, parses the container, or runs the
+  target. The script stops on an identity mismatch, disables shared libraries,
+  and reports `found`, `exhausted`, `step-limit`, `deadline`, or `error`. A found
+  or stopped search does not prove runtime reachability, exploitability, or an
+  avoid target's unreachability; environment, files, and stdin are not modelled,
+  and solved bytes are model values rather than a working payload. See the
+  [symbolic execution guide](https://github.com/morluto/rea/blob/main/docs/angr-symbolic-execution.md).
+- Volatility memory-forensics plans: `plan_memory_forensics` generates an inert
+  Volatility 3 script for an explicit local memory image and selected plugins.
+  It records the image SHA-256 and never runs Volatility, Python, or the image.
+  The script refuses a changed image, splits `REA_VOLATILITY_COMMAND`, runs only
+  the selected plugins with the JSON renderer, and bounds each plugin's deadline
+  and retained output. Recovered records are image observations, not live-system
+  facts. See the
+  [memory-forensics guide](https://github.com/morluto/rea/blob/main/docs/memory-forensics-planning.md).
+- AFL++ campaign plans: `plan_fuzzing_campaign` generates an inert AFL++ script
+  for an explicit target, seed corpus, and output directory. It records the
+  target SHA-256 and never runs AFL++, Python, or the target. Crash and hang
+  files are candidate inputs, not reports; use `inspect_recorded_crash` or
+  `inspect_apple_ips` on supplied artifacts. See the
+  [fuzzing guide](https://github.com/morluto/rea/blob/main/docs/fuzzing-campaign-planning.md).
+- Static taint and decompilation annotations: use `trace_native_values` for a
+  bounded dependency graph, `find_xrefs_to_name` for library symbols,
+  `inspect_native_risk_signatures` for unsafe APIs, and `batch_decompile` to
+  confirm sink arguments. Annotations are separate Evidence and do not rewrite
+  provider pseudocode or prove reachability. Dynamic taint, argument mutation,
+  anti-debug/anti-VM bypass, and autonomous exploit generation are out of scope.
+  See the
+  [taint and annotation guide](https://github.com/morluto/rea/blob/main/docs/native-taint-and-annotations.md).
+- Observation-only Frida hook plans: `plan_frida_hooks` generates a Frida 17
+  script for selected exported functions without attaching, loading it, or
+  executing generated code. It reports bounded pointer arguments, selected
+  UTF-8 string arguments, optional return values and native backtraces, and
+  missing exports at script load. The script never changes arguments, return
+  values, registers, memory, or control flow. Argument mutation, anti-debug and
+  anti-VM bypass, and integrity-check evasion are out of scope. Review the
+  script before passing it to an explicitly authorized instrumentation
+  workflow. See the
+  [hook planning guide](https://github.com/morluto/rea/blob/main/docs/frida-hook-planning.md).
 - Apple `.ips` crash reports: `inspect_apple_ips` with the explicit local
   file. This built-in target-free inspection requires no Xcode, atos, or
   pwntools. Preserve first-line metadata, `bug_type` as a string, process and

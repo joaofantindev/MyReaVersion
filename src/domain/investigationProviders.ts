@@ -80,6 +80,34 @@ export const NATIVE_EXPORTS_PROVIDER = Object.freeze({
   version: "1",
 } as const);
 
+/** Provider identity for portable, execution-free native risk-signature scanning. */
+export const NATIVE_RISK_SIGNATURES_PROVIDER = Object.freeze({
+  id: "rea-native-risk-signatures",
+  name: "REA native risk-signature scanner",
+  version: "1",
+} as const);
+
+/** Provider identity for execution-free angr symbolic-execution planning. */
+export const NATIVE_SYMBOLIC_EXECUTION_PROVIDER = Object.freeze({
+  id: "rea-native-symbolic-execution",
+  name: "REA angr symbolic-execution planner",
+  version: "1",
+} as const);
+
+/** Provider identity for execution-free Volatility memory-forensics planning. */
+export const NATIVE_MEMORY_FORENSICS_PROVIDER = Object.freeze({
+  id: "rea-native-memory-forensics",
+  name: "REA Volatility memory-forensics planner",
+  version: "1",
+} as const);
+
+/** Provider identity for execution-free AFL++ campaign planning. */
+export const NATIVE_FUZZING_PROVIDER = Object.freeze({
+  id: "rea-native-fuzzing",
+  name: "REA AFL++ campaign planner",
+  version: "1",
+} as const);
+
 /** Provider identity for deterministic managed-code comparison workflows. */
 export const MANAGED_WORKFLOW_PROVIDER = {
   id: "rea-dotnet-workflows",
